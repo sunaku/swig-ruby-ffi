@@ -28,6 +28,7 @@ extern "C" {
   Language *swig_python(void);
   Language *swig_perl5(void);
   Language *swig_ruby(void);
+  Language *swig_ruby_ffi(void);
   Language *swig_guile(void);
   Language *swig_modula3(void);
   Language *swig_mzscheme(void);
@@ -81,6 +82,7 @@ static swig_module modules[] = {
   {"-python", swig_python, "Python"},
   {"-r", swig_r, "R (aka GNU S)"},
   {"-ruby", swig_ruby, "Ruby"},
+  {"-ruby-ffi", swig_ruby_ffi, "Ruby FFI"},
   {"-sexp", swig_sexp, "Lisp S-Expressions"},
   {"-tcl", swig_tcl, "Tcl"},
   {"-tcl8", swig_tcl, 0},

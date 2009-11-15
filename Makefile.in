@@ -62,6 +62,7 @@ skip-guilescm   = test -n "@SKIP_GUILESCM@"
 skip-guile	= test -n "@SKIP_GUILE@"
 skip-mzscheme	= test -n "@SKIP_MZSCHEME@"
 skip-ruby	= test -n "@SKIP_RUBY@"
+skip-ruby-ffi	= test -n "@SKIP_RUBY_FFI@"
 skip-php	= test -n "@SKIP_PHP@"
 skip-ocaml      = test -n "@SKIP_OCAML@"
 skip-octave     = test -n "@SKIP_OCTAVE@"
@@ -123,6 +124,7 @@ check-examples:					\
 	check-guile-examples			\
 	check-mzscheme-examples			\
 	check-ruby-examples			\
+	check-ruby-ffi-examples			\
 	check-ocaml-examples			\
 	check-octave-examples			\
 	check-php-examples			\
@@ -144,6 +146,7 @@ java_examples      :=$(shell sed '/^\#/d' $(srcdir)/Examples/java/check.list)
 guile_examples     :=$(shell sed '/^\#/d' $(srcdir)/Examples/guile/check.list)
 mzscheme_examples  :=$(shell sed '/^\#/d' $(srcdir)/Examples/mzscheme/check.list)
 ruby_examples      :=$(shell sed '/^\#/d' $(srcdir)/Examples/ruby/check.list)
+ruby_ffi_examples  :=
 ocaml_examples     :=$(shell sed '/^\#/d' $(srcdir)/Examples/ocaml/check.list)
 octave_examples    :=$(shell sed '/^\#/d' $(srcdir)/Examples/octave/check.list)
 php_examples       :=$(shell sed '/^\#/d' $(srcdir)/Examples/php/check.list)
@@ -238,6 +241,7 @@ check-test-suite:				\
 	check-guile-test-suite			\
 	check-mzscheme-test-suite		\
 	check-ruby-test-suite			\
+	check-ruby-ffi-test-suite		\
 	check-ocaml-test-suite			\
 	check-octave-test-suite			\
 	check-php-test-suite			\
@@ -289,6 +293,7 @@ all-test-suite:					\
 	all-guile-test-suite			\
 	all-mzscheme-test-suite			\
 	all-ruby-test-suite			\
+	all-ruby-ffi-test-suite			\
 	all-ocaml-test-suite			\
 	all-octave-test-suite			\
 	all-php-test-suite			\
@@ -316,6 +321,7 @@ broken-test-suite:				\
 	broken-guile-test-suite			\
 	broken-mzscheme-test-suite		\
 	broken-ruby-test-suite			\
+	broken-ruby-ffi-test-suite		\
 	broken-ocaml-test-suite			\
 	broken-octave-test-suite		\
 	broken-php-test-suite			\
@@ -444,7 +450,7 @@ install-main:
 	@echo "Installing $(DESTDIR)$(BIN_DIR)/`echo $(TARGET_NOEXE) | sed '$(transform)'`@EXEEXT@"
 	@$(INSTALL_PROGRAM) $(TARGET) $(DESTDIR)$(BIN_DIR)/`echo $(TARGET_NOEXE) | sed '$(transform)'`@EXEEXT@
 
-lib-languages = gcj typemaps tcl perl5 python guile java mzscheme ruby php ocaml octave \
+lib-languages = gcj typemaps tcl perl5 python guile java mzscheme ruby ruby-ffi php ocaml octave \
 	pike chicken csharp modula3 allegrocl clisp lua cffi uffi r
 
 lib-modules = std
