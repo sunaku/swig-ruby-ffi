@@ -1,0 +1,158 @@
+Version 1.3.41 (in progress)
+============================
+
+2009-11-14: wsfulton
+            Fix #2310483 - function pointer typedef within extern "C" block.
+
+2009-11-13: wsfulton
+            Fix usage of nested template classes within templated classes so that compileable code 
+            is generated.
+
+2009-11-13: olly
+	    [php] Fix place where class prefix (as specified with -prefix)
+	    wasn't being used.  Patch from gverbruggen in SF#2892647.
+
+2009-11-12: wsfulton
+            Fix usage of nested template classes so that compileable code is generated - the nested
+            template class is now treated like a normal nested classes, that is, as an opaque type
+            unless the nestedworkaround feature is used.
+
+2009-11-12: wsfulton
+            Replace SWIGWARN_PARSE_NESTED_CLASS with SWIGWARN_PARSE_NAMED_NESTED_CLASS and
+            SWIGWARN_PARSE_UNNAMED_NESTED_CLASS for named and unnamed nested classes respectively.
+
+            Named nested class ignored warnings can now be suppressed by name using %warnfilter, eg:
+
+              %warnfilter(SWIGWARN_PARSE_NAMED_NESTED_CLASS) Outer::Inner;
+
+            but clearly unnamed nested classes cannot and the global suppression is still required, eg:
+
+              #pragma SWIG nowarn=SWIGWARN_PARSE_UNNAMED_NESTED_CLASS
+
+2009-11-11: wsfulton
+            Added the nestedworkaround feature as a way to use the full functionality of a nested class 
+            (C++ mode only). It removes the nested class from SWIG's type information so it is as if SWIG
+            had never parsed the nested class. The documented nested class workarounds using a global
+            fake class stopped working when SWIG treated the nested class as an opaque pointer, and
+            this feature reverts this behaviour. The documentation has been updated with details of how
+            to use and implement it, see the "Nested classes" section in SWIGPlus.html.
+
+2009-11-11: wsfulton
+            There were a number of C++ cases where nested classes/structs/unions were being handled
+            as if C code was being parsed which would oftentimes lead to uncompileable code as an
+            attempt was made to wrap the nested structs like it is documented for C code. Now all
+            nested structs/classes/unions are ignored in C++ mode, as was always documented. However,
+            there is an improvement as usage of nested structs/classes/unions is now always treated
+            as an opaque type by default, resulting in generated code that should always compile.
+
+            *** POTENTIAL INCOMPATIBILITY ***
+
+2009-11-09: drjoe
+	    Fix R for -fcompact and add std_map.i
+
+2009-11-08: wsfulton
+            Fix inconsistency for nested structs/unions/classes. Uncompileable code was being
+            generated when inner struct and union declarations were used as types within the
+            inner struct. The inner struct/union is now treated as a forward declaration making the
+            behaviour the same as an inner class. (C++ code), eg:
+
+              struct Outer {
+                struct InnerStruct { int x; };
+                InnerStruct* getInnerStruct();
+              };
+
+2009-11-08: wsfulton
+	    Ignored nested class/struct warnings now display the name of the ignored class/struct.
+
+2009-11-07: wsfulton
+	    Bug #1514681 - Fix nested template classes within a namespace generated uncompileable
+            code and introduced strange side effects to other wrapper code especially code
+            after the nested template class. Note that nested template classes are still ignored.
+
+2009-11-07: wsfulton
+	    Add new debug options:
+              -debug-symtabs    - Display symbol tables information
+              -debug-symbols    - Display target language symbols in the symbol tables
+              -debug-csymbols   - Display C symbols in the symbol tables
+
+2009-11-03: wsfulton
+	    Fix some usage of global scope operator, for example:
+
+              namespace AA { /* ... */ }
+              using namespace ::AA;
+
+            and bug #1816802 - SwigValueWrapper should be used:
+
+              struct CC {
+                CC(int); // no default constructor
+              };
+              ::CC x();
+
+            and in template parameter specializations:
+
+              struct S {};
+              template <typename T> struct X { void a() {}; };
+              template <> struct X<S> { void b() {}; };
+              %template(MyTConcrete) X< ::S >;
+
+            plus probably some other corner case usage of ::.
+
+2009-11-02: olly
+	    [Python] Fix potential memory leak in initialisation code for the
+	    generated module.
+
+2009-10-23: wsfulton
+	    Fix seg fault when using a named nested template instantiation using %template(name) 
+            within a class. A warning that these are not supported is now issued plus processing 
+            continues as if no name was given.
+
+2009-10-20: wsfulton
+	    [Python] Fix std::vector<const T*>. This would previously compile, but not run correctly.
+
+2009-10-20: wsfulton
+	    Fixed previously fairly poor template partial specialization and explicit 
+            specialization support. Numerous bugs in this area have been fixed including:
+
+            - Template argument deduction implemented for template type arguments, eg this now
+              works:
+                template<typename T> class X      {};
+                template<typename T> class X<T *> {};
+                %template(X1) X<const int *>; // Chooses T * specialization
+
+              and more complex cases with multiple parameters and a mix of template argument
+              deduction and explicitly specialised parameters, eg:
+                template <typename T1, typename T2> struct TwoParm               { void a() {} };
+                template <typename T1>              struct TwoParm<T1 *, int *>  { void e() {} };
+                %template(E) TwoParm<int **, int *>;
+
+            Note that the primary template must now be in scope, like in C++, when
+            an explicit or partial specialization is instantiated with %template.
+
+            *** POTENTIAL INCOMPATIBILITY ***
+
+2009-09-14: wsfulton
+	    [C#] Add %csattributes for adding C# attributes to enum values, see docs for example.
+
+2009-09-11: wsfulton
+	    Fix memmove regression in cdata.i as reported by Adriaan Renting.
+
+2009-09-07: wsfulton
+	    Fix constant expressions containing <= or >=.
+
+2009-09-02: wsfulton
+	    The following operators in constant expressions now result in type bool for C++ 
+            wrappers and remain as type int for C wrappers, as per each standard: 
+
+              && || == != < > <= >= (Actually the last 4 are still broken). For example:
+
+              #define A 10
+              #define B 10
+              #define A_EQ_B  A == B // now wrapped as type bool for C++
+              #define A_AND_B A && B // now wrapped as type bool for C++
+
+2009-09-02: wsfulton
+	    Fix #2845746. true and false are now recognised keywords (only when wrapping C++).
+            Constants such as the following are now wrapped (as type bool):
+              #define FOO true
+              #define BAR FOO && false
+
