@@ -786,6 +786,8 @@ void RUBY_FFI::emit_struct_union(Node *n, bool un = false) {
   Printf(f_cl, "\n  class %s < FFI::%s", lisp_name, un ? "Union" : "Struct");
   Printf(f_cl, "\n    layout ");
 
+  List *valid_members = NewList();
+
   for (Node *c = firstChild(n); c; c = nextSibling(c)) {
 #ifdef RUBY_FFI_DEBUG
     Printf(stderr, "struct/union %s\n", Getattr(c, "name"));
@@ -802,33 +804,40 @@ void RUBY_FFI::emit_struct_union(Node *n, bool un = false) {
       //               Getattr(c, "type"));
       //       SWIG_exit(EXIT_FAILURE);
     } else {
-      SwigType *childType = NewStringf("%s%s", Getattr(c, "decl"), Getattr(c, "type"));
-
-      Node *node = NewHash();
-      Setattr(node, "type", childType);
-      Setfile(node, Getfile(n));
-      Setline(node, Getline(n));
-      const String *tm = Swig_typemap_lookup("cin", node, "", 0);
-
-      String *typespec = tm ? NewString(tm) : NewString("");
-
-      String *slot_name = lispify_name(c, Getattr(c, "sym:name"), "'slotname");
-      if (Strcmp(slot_name, "t") == 0 || Strcmp(slot_name, "T") == 0)
-  slot_name = NewStringf("t_var");
-
-      Printf(f_cl, ":%s, %s", slot_name, typespec);
-
-      // comma to continue the parameter list
-      Node *next = nextSibling(c);
-      if (next && !Strcmp(nodeType(next), "cdecl")) {
-        Printf(f_cl, ",\n           ");
-      }
-
-      Delete(node);
-      Delete(childType);
-      Delete(typespec);
+      Append(valid_members, c);
     }
   }
+
+  for (int i = 0, z = Len(valid_members); i < z; i++) {
+    Node *c = Getitem(valid_members, i);
+
+    SwigType *childType = NewStringf("%s%s", Getattr(c, "decl"), Getattr(c, "type"));
+
+    Node *node = NewHash();
+    Setattr(node, "type", childType);
+    Setfile(node, Getfile(n));
+    Setline(node, Getline(n));
+    const String *tm = Swig_typemap_lookup("cin", node, "", 0);
+
+    String *typespec = tm ? NewString(tm) : NewString("");
+
+    String *slot_name = lispify_name(c, Getattr(c, "sym:name"), "'slotname");
+    if (Strcmp(slot_name, "t") == 0 || Strcmp(slot_name, "T") == 0)
+slot_name = NewStringf("t_var");
+
+    Printf(f_cl, ":%s, %s", slot_name, typespec);
+
+    // continue the parameter list
+    if (i + 1 < z) {
+      Printf(f_cl, ",\n           ");
+    }
+
+    Delete(node);
+    Delete(childType);
+    Delete(typespec);
+  }
+
+  Delete(valid_members);
 
   Printf(f_cl, "\n  end\n");
 
