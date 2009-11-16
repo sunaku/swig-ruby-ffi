@@ -613,7 +613,7 @@ int RUBY_FFI::enumDeclaration(Node *n) {
     if (GetFlag(n, "feature:bitfield")) {
       Printf(f_cl, "\n(cffi:defbitfield %s", lisp_name);
     } else {
-      Printf(f_cl, "\n(cffi:defcenum %s", lisp_name);
+      Printf(f_cl, "\nenum :%s", lisp_name);
     }
     slot_name_keywords = true;
 
@@ -633,23 +633,25 @@ int RUBY_FFI::enumDeclaration(Node *n) {
     slot_name_keywords = false;
   }
 
+  Printf(f_cl, ", [", name);
+
   for (Node *c = firstChild(n); c; c = nextSibling(c)) {
 
     String *slot_name = lispify_name(c, Getattr(c, "name"), "'enumvalue", slot_name_keywords);
     String *value = Getattr(c, "enumvalue");
 
     if (!value || GetFlag(n, "feature:bitfield:ignore_values"))
-      Printf(f_cl, "\n\t%s", slot_name);
+      Printf(f_cl, "\n  %s", slot_name);
     else {
       String *type = Getattr(c, "type");
       String *converted_value = convert_literal(value, type);
-      Printf(f_cl, "\n\t(%s #.%s)", slot_name, converted_value);
+      Printf(f_cl, "\n  %s, %s,", slot_name, converted_value);
       Delete(converted_value);
     }
     Delete(value);
   }
 
-  Printf(f_cl, ")\n");
+  Printf(f_cl, "\n]\n");
 
   // No need to export keywords
   if (lisp_name && Len(lisp_name) != 0) {
