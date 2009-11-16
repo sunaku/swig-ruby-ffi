@@ -571,7 +571,7 @@ int RUBY_FFI::variableWrapper(Node *n) {
   if (Strcmp(lisp_name, "t") == 0 || Strcmp(lisp_name, "T") == 0)
     lisp_name = NewStringf("t_var");
 
-  Printf(f_cl, "\n  (cffi:defcvar (\"%s\" %s)\n %s)\n", var_name, lisp_name, lisp_type);
+  Printf(f_cl, "\n  attach_variable :%s, %s\n", lisp_name, lisp_type);
 
   Delete(lisp_type);
 
