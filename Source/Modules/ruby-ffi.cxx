@@ -518,41 +518,28 @@ void RUBY_FFI::emit_defun(Node *n, String *name) {
 
   emit_inline(n, func_name);
 
-  Printf(f_cl, "\n(cffi:defcfun (\"%s\" %s)", name, func_name);
-  String *ffitype = Swig_typemap_lookup("cout", n, ":pointer", 0);
-
-  Printf(f_cl, " %s", ffitype);
-  Delete(ffitype);
+  Printf(f_cl, "\nattach_function :%s, [", func_name);
 
   for (Parm *p = pl; p; p = nextSibling(p), argnum++) {
 
     if (SwigType_isvarargs(Getattr(p, "type"))) {
-      Printf(f_cl, "\n  %s", NewString("&rest"));
+      Printf(f_cl, "%s", NewString(":varargs"));
       continue;
     }
 
-    String *argname = Getattr(p, "name");
-
-    ffitype = Swig_typemap_lookup("cin", p, "", 0);
-
-    int tempargname = 0;
-    if (!argname) {
-
-      argname = NewStringf("arg%d", argnum);
-      tempargname = 1;
-    } else if (Strcmp(argname, "t") == 0 || Strcmp(argname, "T") == 0) {
-      argname = NewStringf("t_arg%d", argnum);
-      tempargname = 1;
-    }
-
-    Printf(f_cl, "\n  (%s %s)", argname, ffitype);
-
+    String *ffitype = Swig_typemap_lookup("cin", p, "", 0);
+    Printf(f_cl, "%s", ffitype);
     Delete(ffitype);
 
-    if (tempargname)
-      Delete(argname);
+    // comma to continue the parameter list
+    if (nextSibling(p)) {
+      Printf(f_cl, ", ");
+    }
   }
-  Printf(f_cl, ")\n");    /* finish arg list */
+
+  String *ffitype = Swig_typemap_lookup("cout", n, ":pointer", 0);
+  Printf(f_cl, "], %s\n", ffitype);
+  Delete(ffitype);
 
   emit_export(n, func_name);
 }
