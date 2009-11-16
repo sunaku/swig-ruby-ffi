@@ -144,12 +144,6 @@
 #include <string.h>
 %}
 
-%insert("swiglisp") %{
-###SWIG wrapper code starts here
-
-###SWIG wrapper code ends here
-%}
-
 #ifdef __cplusplus
 %typemap(out) SWIGTYPE                     "$result = new $1_type($1);";
 #else

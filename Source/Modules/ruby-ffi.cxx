@@ -20,7 +20,6 @@ class RUBY_FFI:public Language {
 public:
   String *f_cl;
   String *f_clhead;
-  String *f_clwrap;
   bool CWrap;     // generate wrapper file for C code?
   File *f_begin;
   File *f_runtime;
@@ -106,7 +105,6 @@ void RUBY_FFI::main(int argc, char *argv[]) {
 
   }
   f_clhead = NewString("");
-  f_clwrap = NewString("");
   f_cl = NewString("");
 
   allow_overloading();
@@ -159,10 +157,6 @@ int RUBY_FFI::top(Node *n) {
   Swig_register_filebyname("begin", f_begin);
   Swig_register_filebyname("runtime", f_runtime);
   Swig_register_filebyname("lisphead", f_clhead);
-  if (!no_swig_lisp)
-    Swig_register_filebyname("swiglisp", f_cl);
-  else
-    Swig_register_filebyname("swiglisp", f_null);
 
   Swig_banner(f_begin);
 
@@ -170,18 +164,21 @@ int RUBY_FFI::top(Node *n) {
   Printf(f_runtime, "#define SWIGRUBYFFI\n");
   Printf(f_runtime, "\n");
 
-  Swig_banner_target_lang(f_lisp, ";;;");
+  Printf(f_lisp, "#--\n");
+  Swig_banner_target_lang(f_lisp, "#");
+  Printf(f_lisp, "#++\n");
 
   Language::top(n);
   Printf(f_lisp, "%s\n", f_clhead);
-  Printf(f_lisp, "%s\n", f_cl);
-  Printf(f_lisp, "%s\n", f_clwrap);
+  Printf(f_lisp, "require 'ffi'\n\n");
+  Printf(f_lisp, "module %s\n", Char(lispify_name(n, module, "'module")));
+  Printf(f_lisp, "  extend FFI::Library\n%s", f_cl);
+  Printf(f_lisp, "end\n");
 
   Close(f_lisp);
   Delete(f_lisp);   // Deletes the handle, not the file
   Delete(f_cl);
   Delete(f_clhead);
-  Delete(f_clwrap);
   Dump(f_runtime, f_begin);
   Close(f_begin);
   Delete(f_runtime);
@@ -518,7 +515,7 @@ void RUBY_FFI::emit_defun(Node *n, String *name) {
 
   emit_inline(n, func_name);
 
-  Printf(f_cl, "\nattach_function :%s, [", func_name);
+  Printf(f_cl, "\n  attach_function :%s, [", func_name);
 
   for (Parm *p = pl; p; p = nextSibling(p), argnum++) {
 
@@ -553,7 +550,7 @@ int RUBY_FFI::constantWrapper(Node *n) {
   if (Strcmp(name, "t") == 0 || Strcmp(name, "T") == 0)
     name = NewStringf("t_var");
 
-  Printf(f_cl, "\n%s = %s\n", name, converted_value);
+  Printf(f_cl, "\n  %s = %s\n", name, converted_value);
   Delete(converted_value);
 
   emit_export(n, name);
@@ -574,7 +571,7 @@ int RUBY_FFI::variableWrapper(Node *n) {
   if (Strcmp(lisp_name, "t") == 0 || Strcmp(lisp_name, "T") == 0)
     lisp_name = NewStringf("t_var");
 
-  Printf(f_cl, "\n(cffi:defcvar (\"%s\" %s)\n %s)\n", var_name, lisp_name, lisp_type);
+  Printf(f_cl, "\n  (cffi:defcvar (\"%s\" %s)\n %s)\n", var_name, lisp_name, lisp_type);
 
   Delete(lisp_type);
 
@@ -585,7 +582,7 @@ int RUBY_FFI::variableWrapper(Node *n) {
 int RUBY_FFI::typedefHandler(Node *n) {
   if (generate_typedef_flag && strncmp(Char(Getattr(n, "type")), "enum", 4)) {
     String *lisp_name = lispify_name(n, Getattr(n, "name"), "'typename");
-    Printf(f_cl, "\n(cffi:defctype %s %s)\n", lisp_name, Swig_typemap_lookup("cin", n, "", 0));
+    Printf(f_cl, "\n  (cffi:defctype %s %s)\n", lisp_name, Swig_typemap_lookup("cin", n, "", 0));
     emit_export(n, lisp_name);
   }
   return Language::typedefHandler(n);
@@ -598,9 +595,9 @@ int RUBY_FFI::enumDeclaration(Node *n) {
   if (name && Len(name) != 0) {
     lisp_name = lispify_name(n, name, "'enumname");
     if (GetFlag(n, "feature:bitfield")) {
-      Printf(f_cl, "\n(cffi:defbitfield %s", lisp_name);
+      Printf(f_cl, "\n  (cffi:defbitfield %s", lisp_name);
     } else {
-      Printf(f_cl, "\nenum :%s", lisp_name);
+      Printf(f_cl, "\n  enum :%s", lisp_name);
     }
     slot_name_keywords = true;
 
@@ -616,7 +613,7 @@ int RUBY_FFI::enumDeclaration(Node *n) {
     Delete(pattern);
 
   } else {
-    Printf(f_cl, "\n(defanonenum %s", name);
+    Printf(f_cl, "\n  (defanonenum %s", name);
     slot_name_keywords = false;
   }
 
@@ -628,17 +625,17 @@ int RUBY_FFI::enumDeclaration(Node *n) {
     String *value = Getattr(c, "enumvalue");
 
     if (!value || GetFlag(n, "feature:bitfield:ignore_values"))
-      Printf(f_cl, "\n  %s", slot_name);
+      Printf(f_cl, "\n    %s", slot_name);
     else {
       String *type = Getattr(c, "type");
       String *converted_value = convert_literal(value, type);
-      Printf(f_cl, "\n  %s, %s,", slot_name, converted_value);
+      Printf(f_cl, "\n    %s, %s,", slot_name, converted_value);
       Delete(converted_value);
     }
     Delete(value);
   }
 
-  Printf(f_cl, "\n]\n");
+  Printf(f_cl, "\n  ]\n");
 
   // No need to export keywords
   if (lisp_name && Len(lisp_name) != 0) {
@@ -786,8 +783,8 @@ void RUBY_FFI::emit_struct_union(Node *n, bool un = false) {
   Swig_typemap_register("cout", pattern, lisp_name, NULL, NULL);
   Delete(pattern);
 
-  Printf(f_cl, "\nclass %s < FFI::%s", lisp_name, un ? "Union" : "Struct");
-  Printf(f_cl, "\n  layout ");
+  Printf(f_cl, "\n  class %s < FFI::%s", lisp_name, un ? "Union" : "Struct");
+  Printf(f_cl, "\n    layout ");
 
   for (Node *c = firstChild(n); c; c = nextSibling(c)) {
 #ifdef RUBY_FFI_DEBUG
@@ -824,7 +821,7 @@ void RUBY_FFI::emit_struct_union(Node *n, bool un = false) {
       // comma to continue the parameter list
       Node *next = nextSibling(c);
       if (next && !Strcmp(nodeType(next), "cdecl")) {
-        Printf(f_cl, ",\n         ");
+        Printf(f_cl, ",\n           ");
       }
 
       Delete(node);
@@ -833,7 +830,7 @@ void RUBY_FFI::emit_struct_union(Node *n, bool un = false) {
     }
   }
 
-  Printf(f_cl, "\nend\n");
+  Printf(f_cl, "\n  end\n");
 
   emit_export(n, lisp_name);
   for (Node *child = firstChild(n); child; child = nextSibling(child)) {
@@ -850,12 +847,12 @@ void RUBY_FFI::emit_struct_union(Node *n, bool un = false) {
 
 void RUBY_FFI::emit_export(Node *n, String *name) {
   if (GetInt(n, "feature:export"))
-    Printf(f_cl, "\n(cl:export '%s)\n", name);
+    Printf(f_cl, "\n  (cl:export '%s)\n", name);
 }
 
 void RUBY_FFI::emit_inline(Node *n, String *name) {
   if (GetInt(n, "feature:inline"))
-    Printf(f_cl, "\n(cl:declaim (cl:inline %s))\n", name);
+    Printf(f_cl, "\n  (cl:declaim (cl:inline %s))\n", name);
 }
 
 String *RUBY_FFI::lispify_name(Node *n, String *ty, const char *flag, bool kw) {
