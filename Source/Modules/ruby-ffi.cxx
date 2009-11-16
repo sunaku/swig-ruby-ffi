@@ -986,14 +986,8 @@ String *RUBY_FFI::convert_literal(String *literal, String *type, bool try_to_spl
       }
     }
     return num;
-  } else if (SwigType_type(type) == T_CHAR) {
+  } else if (SwigType_type(type) == T_CHAR || SwigType_type(type) == T_STRING) {
     /* Use CL syntax for character literals */
-    String* result = NewStringf("'%c'", s[2]);
-    Delete(num);
-    //    Printf(stderr, "%s  %c %d", s, s[2], s);
-    return result;
-  } else if (SwigType_type(type) == T_STRING) {
-    /* Use CL syntax for string literals */
     String* result = NewStringf("\"%s\"", num_param);
     Delete(num);
     return result;
