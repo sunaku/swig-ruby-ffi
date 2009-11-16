@@ -797,11 +797,8 @@ void RUBY_FFI::emit_struct_union(Node *n, bool un = false) {
   Swig_typemap_register("cout", pattern, lisp_name, NULL, NULL);
   Delete(pattern);
 
-  if (un) {
-    Printf(f_cl, "\n(cffi:defcunion %s", lisp_name);
-  } else
-    Printf(f_cl, "\n(cffi:defcstruct %s", lisp_name);
-
+  Printf(f_cl, "\nclass %s < FFI::%s", lisp_name, un ? "Union" : "Struct");
+  Printf(f_cl, "\n  layout ");
 
   for (Node *c = firstChild(n); c; c = nextSibling(c)) {
 #ifdef RUBY_FFI_DEBUG
@@ -833,7 +830,13 @@ void RUBY_FFI::emit_struct_union(Node *n, bool un = false) {
       if (Strcmp(slot_name, "t") == 0 || Strcmp(slot_name, "T") == 0)
   slot_name = NewStringf("t_var");
 
-      Printf(f_cl, "\n\t(%s %s)", slot_name, typespec);
+      Printf(f_cl, ":%s, %s", slot_name, typespec);
+
+      // comma to continue the parameter list
+      Node *next = nextSibling(c);
+      if (next && !Strcmp(nodeType(next), "cdecl")) {
+        Printf(f_cl, ",\n         ");
+      }
 
       Delete(node);
       Delete(childType);
@@ -841,7 +844,7 @@ void RUBY_FFI::emit_struct_union(Node *n, bool un = false) {
     }
   }
 
-  Printf(f_cl, ")\n");
+  Printf(f_cl, "\nend\n");
 
   emit_export(n, lisp_name);
   for (Node *child = firstChild(n); child; child = nextSibling(child)) {
