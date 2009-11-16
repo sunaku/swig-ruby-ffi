@@ -566,7 +566,7 @@ int RUBY_FFI::constantWrapper(Node *n) {
   if (Strcmp(name, "t") == 0 || Strcmp(name, "T") == 0)
     name = NewStringf("t_var");
 
-  Printf(f_cl, "\n(cl:defconstant %s %s)\n", name, converted_value);
+  Printf(f_cl, "\n%s = %s\n", name, converted_value);
   Delete(converted_value);
 
   emit_export(n, name);
