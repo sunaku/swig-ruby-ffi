@@ -271,7 +271,7 @@ void RUBY_FFI::emit_defmethod(Node *n) {
     else
       Printf(args_placeholder, "%s", argname);
 
-    if (ffitype && Strcmp(ffitype, lispify_name(parent, lispy_name(Char(Getattr(parent, "sym:name"))), "'classname")) == 0)
+    if (ffitype && Strcmp(ffitype, lispify_name(parent, lispy_name(Char(Getattr(parent, "sym:name"))), "'class")) == 0)
       Printf(args_call, " (ff-pointer %s)", argname);
     else
       Printf(args_call, " %s", argname);
@@ -319,7 +319,7 @@ void RUBY_FFI::emit_initialize_instance(Node *n) {
     else
       Printf(args_placeholder, " %s", argname);
 
-    if (Strcmp(ffitype, lispify_name(parent, lispy_name(Char(Getattr(parent, "sym:name"))), "'classname")) == 0)
+    if (Strcmp(ffitype, lispify_name(parent, lispy_name(Char(Getattr(parent, "sym:name"))), "'class")) == 0)
       Printf(args_call, " (ff-pointer %s)", argname);
     else
       Printf(args_call, " %s", argname);
@@ -657,7 +657,7 @@ void RUBY_FFI::emit_class(Node *n) {
 #endif
 
   String *name = Getattr(n, "sym:name");
-  String *lisp_name = lispify_name(n, lispy_name(Char(name)), "'classname");
+  String *lisp_name = lispify_name(n, lispy_name(Char(name)), "'class");
 
   String *bases = Getattr(n, "bases");
   String *supers = NewString("(");
@@ -667,7 +667,7 @@ void RUBY_FFI::emit_class(Node *n) {
       if (!first)
   Printf(supers, " ");
       String *s = Getattr(i.item, "name");
-      Printf(supers, "%s", lispify_name(i.item, s, "'classname"));
+      Printf(supers, "%s", lispify_name(i.item, s, "'class"));
     }
   } else {
     // Printf(supers,"ff:foreign-pointer");
@@ -772,7 +772,7 @@ void RUBY_FFI::emit_struct_union(Node *n, bool un = false) {
     Printf(stderr, " (name: %s)\n", name);
     SWIG_exit(EXIT_FAILURE);
   }
-  String *lisp_name = lispify_name(n, name, "'classname");
+  String *lisp_name = lispify_name(n, name, "'class");
 
   //Register the struct/union name to the cin and cout typemaps
 
@@ -859,15 +859,17 @@ void RUBY_FFI::emit_inline(Node *n, String *name) {
 }
 
 String *RUBY_FFI::lispify_name(Node *n, String *ty, const char *flag, bool kw) {
-  String *intern_func = Getattr(n, "feature:intern_function");
-  if (intern_func) {
-    if (Strcmp(intern_func, "1") == 0)
-      intern_func = NewStringf("swig-lispify");
-    return NewStringf("#.(%s \"%s\" %s%s)", intern_func, ty, flag, kw ? " :keyword" : "");
-  } else if (kw)
+  if (kw) {
     return NewStringf(":%s", ty);
-  else
-    return ty;
+  } else if (Strcmp(flag, "'constant") == 0 || Strcmp(flag, "'class") == 0 || Strcmp(flag, "'module") == 0) {
+    // Ruby class names must begin with an uppercase letter
+    char *first_letter = Char(ty);
+    if (!isupper(*first_letter)) {
+      *first_letter = toupper(*first_letter);
+    }
+  }
+
+  return ty;
 }
 
 /* utilities */
