@@ -962,27 +962,9 @@ String *RUBY_FFI::infix_to_prefix(String *val, char split_op, const String *op, 
 String *RUBY_FFI::convert_literal(String *literal, String *type, bool try_to_split) {
   String *num_param = Copy(literal);
   String *trimmed = trim(num_param);
-  String *num = strip_parens(trimmed), *res = 0;
+  String *num = strip_parens(trimmed);
   Delete(trimmed);
   char *s = Char(num);
-
-  // very basic parsing of infix expressions.
-  if (try_to_split) {
-    if ((res = infix_to_prefix(num, '|', "cl:logior", type)))
-      return res;
-    if ((res = infix_to_prefix(num, '&', "cl:logand", type)))
-      return res;
-    if ((res = infix_to_prefix(num, '^', "cl:logxor", type)))
-      return res;
-    if ((res = infix_to_prefix(num, '*', "cl:*", type)))
-      return res;
-    if ((res = infix_to_prefix(num, '/', "cl:/", type)))
-      return res;
-    if ((res = infix_to_prefix(num, '+', "cl:+", type)))
-      return res;
-    if ((res = infix_to_prefix(num, '-', "cl:-", type)))
-      return res;
-  }
 
   if (SwigType_type(type) == T_FLOAT || SwigType_type(type) == T_DOUBLE || SwigType_type(type) == T_LONGDOUBLE) {
     // Use CL syntax for float literals
@@ -993,33 +975,26 @@ String *RUBY_FFI::convert_literal(String *literal, String *type, bool try_to_spl
 
     bool is_literal = isdigit(*num_start) || (*num_start == '.') || (*num_start == '+') || (*num_start == '-');
 
-    String *lisp_exp = 0;
     if (is_literal) {
-      if (*num_end == 'f' || *num_end == 'F') {
-        lisp_exp = NewString("f");
-      } else {
-        lisp_exp = NewString("d");
-      }
-
       if (*num_end == 'l' || *num_end == 'L' || *num_end == 'f' || *num_end == 'F') {
         *num_end = '\0';
         num_end--;
       }
 
-      int exponents = Replaceall(num, "e", lisp_exp) + Replaceall(num, "E", lisp_exp);
-
-      if (!exponents)
-        Printf(num, "%s0", lisp_exp);
-
-      if (exponents > 1 || (exponents + Replaceall(num, ".", ".") == 0)) {
-        Delete(num);
-        num = 0;
+      // Ruby requires an explicit leading digit before the decimal point
+      char *decimal_point = Strchr(num, '.');
+      if (decimal_point) {
+        char *leading_digit = decimal_point - 1;
+        if (leading_digit >= num_start && !isdigit(*leading_digit)) {
+          // make the implicit leading zero explicit
+          Insert(num, decimal_point - num_start, "0");
+        }
       }
     }
     return num;
   } else if (SwigType_type(type) == T_CHAR) {
     /* Use CL syntax for character literals */
-    String* result = NewStringf("#\\%c", s[2]);
+    String* result = NewStringf("'%c'", s[2]);
     Delete(num);
     //    Printf(stderr, "%s  %c %d", s, s[2], s);
     return result;
@@ -1028,33 +1003,14 @@ String *RUBY_FFI::convert_literal(String *literal, String *type, bool try_to_spl
     String* result = NewStringf("\"%s\"", num_param);
     Delete(num);
     return result;
-  } else if (SwigType_type(type) == T_INT || SwigType_type(type) == T_UINT) {
+  } else if (SwigType_type(type) == T_INT || SwigType_type(type) == T_UINT || SwigType_type(type) == T_LONG || SwigType_type(type) == T_ULONG) {
     // Printf(stderr, "Is a T_INT or T_UINT %s, before replaceall\n", s);
     Replaceall(num, "u", "");
     Replaceall(num, "U", "");
     Replaceall(num, "l", "");
     Replaceall(num, "L", "");
-
-    int i, j;
-    if (sscanf(s, "%d >> %d", &i, &j) == 2) {
-      String* result = NewStringf("(cl:ash %d -%d)", i, j);
-      Delete(num);
-      return result;
-    } else if (sscanf(s, "%d << %d", &i, &j) == 2) {
-      String* result = NewStringf("(cl:ash %d %d)", i, j);
-      Delete(num);
-      return result;
-    }
   }
 
-  if (Len(num) >= 2 && s[0] == '0') { /* octal or hex */
-    if (s[1] == 'x'){
-      DohReplace(num,"0","#",DOH_REPLACE_FIRST);
-    }
-    else{
-      DohReplace(num,"0","#o",DOH_REPLACE_FIRST);
-    }
-  }
   return num;
 }
 
