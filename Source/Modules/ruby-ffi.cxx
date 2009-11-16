@@ -591,14 +591,11 @@ int RUBY_FFI::typedefHandler(Node *n) {
 int RUBY_FFI::enumDeclaration(Node *n) {
   String *name = Getattr(n, "sym:name");
   bool slot_name_keywords;
+
   String *lisp_name = 0;
   if (name && Len(name) != 0) {
-    lisp_name = lispify_name(n, name, "'enumname");
-    if (GetFlag(n, "feature:bitfield")) {
-      Printf(f_cl, "\n  (cffi:defbitfield %s", lisp_name);
-    } else {
-      Printf(f_cl, "\n  enum :%s", lisp_name);
-    }
+    lisp_name = lispify_name(n, name, "'constant");
+    Printf(f_cl, "\n  %s = enum", lisp_name);
     slot_name_keywords = true;
 
     //Registering the enum name to the cin and cout typemaps
@@ -606,18 +603,18 @@ int RUBY_FFI::enumDeclaration(Node *n) {
     Swig_typemap_register("cin", pattern, lisp_name, NULL, NULL);
     Swig_typemap_register("cout", pattern, lisp_name, NULL, NULL);
     Delete(pattern);
+
     //Registering with the kind, i.e., enum
     pattern = NewParm(NewStringf("enum %s", name), NULL);
     Swig_typemap_register("cin", pattern, lisp_name, NULL, NULL);
     Swig_typemap_register("cout", pattern, lisp_name, NULL, NULL);
     Delete(pattern);
-
   } else {
-    Printf(f_cl, "\n  (defanonenum %s", name);
+    Printf(f_cl, "\n  enum", name);
     slot_name_keywords = false;
   }
 
-  Printf(f_cl, ", [", name);
+  Printf(f_cl, " [", name);
 
   for (Node *c = firstChild(n); c; c = nextSibling(c)) {
 
