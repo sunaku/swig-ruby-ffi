@@ -701,7 +701,7 @@ RUBY_DLNK = @RUBYDYNAMICLINKING@
 # ----------------------------------------------------------------
 
 ruby: $(SRCS)
-	$(SWIG) -ruby $(SWIGOPT) $(INTERFACEPATH)
+	$(SWIG) -ruby-ffi $(SWIGOPT) $(INTERFACEPATH)
 	$(CC) -c $(CCSHARED) $(CFLAGS) $(RUBY_CFLAGS) $(ISRCS) $(SRCS) $(INCLUDES) $(RUBY_INCLUDE)
 	$(LDSHARED) $(CFLAGS) $(OBJS) $(IOBJS) $(RUBY_DLNK) $(LIBS) -o $(LIBPREFIX)$(TARGET)$(SO)
 
@@ -710,7 +710,7 @@ ruby: $(SRCS)
 # -----------------------------------------------------------------
 
 ruby_cpp: $(SRCS)
-	$(SWIG) -c++ -ruby $(SWIGOPT) $(INTERFACEPATH)
+	$(SWIG) -c++ -ruby-ffi $(SWIGOPT) $(INTERFACEPATH)
 	$(CXX) -c $(CCSHARED) $(CFLAGS) $(RUBY_CFLAGS) $(ICXXSRCS) $(SRCS) $(CXXSRCS) $(INCLUDES) $(RUBY_INCLUDE)
 	$(CXXSHARED) $(CFLAGS) $(OBJS) $(IOBJS) $(RUBY_DLNK) $(LIBS) $(CPP_DLLIBS) -o $(LIBPREFIX)$(TARGET)$(SO)
 
@@ -724,12 +724,12 @@ ruby_cpp: $(SRCS)
 RUBY_LIBOPTS = @RUBYLINK@ @LIBS@ $(SYSLIBS)
 
 ruby_static: $(SRCS)
-	$(SWIG) -ruby -lembed.i $(SWIGOPT) $(INTERFACEPATH)
+	$(SWIG) -ruby-ffi -lembed.i $(SWIGOPT) $(INTERFACEPATH)
 	$(CC) $(CFLAGS) $(RUBY_CFLAGS) @LINKFORSHARED@ $(ISRCS) $(SRCS) $(INCLUDES) \
 	$(RUBY_INCLUDE) $(LIBS) -L$(RUBY_LIB) $(RUBY_LIBOPTS) -o $(TARGET)
 
 ruby_cpp_static: $(SRCS)
-	$(SWIG) -c++ -ruby -lembed.i $(SWIGOPT) $(INTERFACEPATH)
+	$(SWIG) -c++ -ruby-ffi -lembed.i $(SWIGOPT) $(INTERFACEPATH)
 	$(CXX) $(CFLAGS) $(RUBY_CFLAGS) $(ICXXSRCS) $(SRCS) $(CXXSRCS) $(INCLUDES) \
 	$(RUBY_INCLUDE) $(LIBS)  -L$(RUBY_LIB) $(RUBY_LIBOPTS) -o $(TARGET)
 

@@ -168,11 +168,13 @@ int RUBY_FFI::top(Node *n) {
   Swig_banner_target_lang(f_lisp, "#");
   Printf(f_lisp, "#++\n");
 
+  String *orig_module = Copy(module);
+
   Language::top(n);
   Printf(f_lisp, "%s\n", f_clhead);
-  Printf(f_lisp, "require 'ffi'\n\n");
+  Printf(f_lisp, "require 'rubygems'\nrequire 'ffi'\n\n");
   Printf(f_lisp, "module %s\n", Char(lispify_name(n, module, "'module")));
-  Printf(f_lisp, "  extend FFI::Library\n%s", f_cl);
+  Printf(f_lisp, "  extend FFI::Library\nffi_lib './%s.so'\n%s", Char(orig_module), f_cl);
   Printf(f_lisp, "end\n");
 
   Close(f_lisp);
